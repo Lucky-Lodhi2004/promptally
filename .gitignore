@@ -1,0 +1,44 @@
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.dump
+*.backup
+*.db
+*.sqlite3
+postgres_data/
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+build/
+.env*.local
+next-env.d.ts
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/
+
+.rocketride/
+
+# User assets and local geolocation databases
+backend/private_uploads/
+backend/uploads/
+*.mmdb
+dev/local-proxy/proxy-auth.conf
+*.tsbuildinfo
+.pytest_cache/
+deploy/secrets/
+deploy/backups/
+/data/
+/backend/backups/
+/backend/scripts/seed_database.py
+/backend/scripts/init_local_payment_test.py

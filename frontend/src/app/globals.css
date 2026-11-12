@@ -1,0 +1,277 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #4b4b4d;
+  --brand-saffron: #f28c28;
+  --brand-saffron-dark: #d66f0f;
+  --brand-saffron-soft: #f4b56a;
+  --sidebar: #303133;
+  --utility: #fff8ef;
+}
+
+:root.dark {
+  --background: #111315;
+  --foreground: #d6d9de;
+  --sidebar: #17191d;
+  --utility: #191c20;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: "Lato", "Avenir Next", Avenir, "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: #ffe1bd;
+  color: #2f3032;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--brand-saffron);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar helper */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.subcategory-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-saffron-soft) #f7e7d3;
+}
+
+.subcategory-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.subcategory-scroll::-webkit-scrollbar-track {
+  background: #f7e7d3;
+  border-radius: 999px;
+}
+
+.subcategory-scroll::-webkit-scrollbar-thumb {
+  background: var(--brand-saffron-soft);
+  border-radius: 999px;
+}
+
+.subcategory-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-saffron);
+}
+
+/* Larger, accessible type for form-heavy account and publishing interfaces. */
+.readable-interface .text-xs,
+.readable-interface [class~="text-[10px]"],
+.readable-interface [class~="text-[11px]"] {
+  font-size: 0.9375rem !important;
+  line-height: 1.4rem !important;
+}
+
+/* Keep supporting copy on artifact detail pages legible without enlarging titles. */
+.asset-detail-readable .text-xs {
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+.asset-detail-readable .text-sm {
+  font-size: 0.9375rem !important;
+  line-height: 1.375rem !important;
+}
+
+.asset-detail-readable [class~="text-[9px]"],
+.asset-detail-readable [class~="text-[10px]"],
+.asset-detail-readable [class~="text-[11px]"] {
+  font-size: 0.8125rem !important;
+  line-height: 1.125rem !important;
+}
+
+.readable-interface .text-sm {
+  font-size: 1.0625rem !important;
+  line-height: 1.6rem !important;
+}
+
+.readable-interface .text-base {
+  font-size: 1.1875rem !important;
+  line-height: 1.75rem !important;
+}
+
+.readable-interface input,
+.readable-interface select,
+.readable-interface textarea,
+.readable-interface input[type="file"]::file-selector-button {
+  font-size: 1rem !important;
+  line-height: 1.5rem !important;
+}
+
+.readable-interface label {
+  line-height: 1.5rem;
+}
+
+/* Dark theme ------------------------------------------------------------- */
+.dark body,
+.dark .bg-white {
+  background-color: #111315 !important;
+  color: #d6d9de;
+}
+
+.dark .bg-gray-50,
+.dark [class~="bg-[#fafafa]"],
+.dark [class~="bg-[#f7f8f8]"],
+.dark [class~="bg-[#f7f7f7]"],
+.dark [class~="bg-[#fff8ef]"] {
+  background-color: #191c20 !important;
+}
+
+.dark .bg-gray-100,
+.dark [class~="bg-[#f1f1f2]"],
+.dark [class~="bg-[#e9ebf6]"],
+.dark [class~="bg-[#e1e4f1]"] {
+  background-color: #23272d !important;
+}
+
+.dark .bg-gray-200,
+.dark .bg-gray-300,
+.dark [class~="bg-[#dfe1ec]"] {
+  background-color: #343940 !important;
+}
+
+.dark [class~="bg-[#fff1df]"],
+.dark [class~="bg-[#fff3e2]"],
+.dark .bg-amber-50,
+.dark .bg-amber-100 {
+  background-color: #3b2918 !important;
+}
+
+.dark [class~="bg-[#eff7f7]"] {
+  background-color: #1d3434 !important;
+}
+
+.dark .bg-red-50,
+.dark .bg-red-100 {
+  background-color: #3b1d21 !important;
+}
+
+.dark .bg-purple-50,
+.dark .bg-purple-100 {
+  background-color: #2f2441 !important;
+}
+
+.dark .bg-green-50,
+.dark .bg-green-100,
+.dark .bg-emerald-50,
+.dark .bg-emerald-100 {
+  background-color: #173428 !important;
+}
+
+.dark .text-green-700,
+.dark .text-green-800,
+.dark .text-emerald-700,
+.dark .text-emerald-800 {
+  color: #86efac !important;
+}
+
+.dark .border-green-200,
+.dark .border-emerald-200 {
+  border-color: #287a4b !important;
+}
+
+.dark .text-gray-950,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark [class~="text-[#2f3032]"],
+.dark [class~="text-[#444447]"],
+.dark [class~="text-[#4b4b4d]"],
+.dark [class~="text-[#55565a]"],
+.dark [class~="text-[#56565a]"] {
+  color: #f1f3f5 !important;
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark [class~="text-[#5f6063]"],
+.dark [class~="text-[#626266]"],
+.dark [class~="text-[#666]"],
+.dark [class~="text-[#66676a]"],
+.dark [class~="text-[#67676a]"],
+.dark [class~="text-[#68686c]"],
+.dark [class~="text-[#69696c]"],
+.dark [class~="text-[#777]"],
+.dark [class~="text-[#77777a]"] {
+  color: #c4c8cf !important;
+}
+
+.dark .text-gray-500,
+.dark .text-gray-400,
+.dark [class~="text-[#999]"],
+.dark [class~="text-[#b8b9bc]"] {
+  color: #979da7 !important;
+}
+
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark [class~="border-[#d3d4d6]"],
+.dark [class~="border-[#d8d8da]"],
+.dark [class~="border-[#dededf]"],
+.dark [class~="border-[#e2e2e3]"],
+.dark [class~="border-[#e5e5e5]"],
+.dark [class~="border-[#e6e6e7]"],
+.dark [class~="border-[#e8e8e8]"] {
+  border-color: #363b43 !important;
+}
+
+.dark .border-r-white {
+  border-right-color: #111315 !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: #1b1e23;
+  border-color: #3b414a;
+  color: #f1f3f5;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #777e89;
+  opacity: 1;
+}
+
+.dark input[type="file"]::file-selector-button {
+  background-color: #30353c;
+  color: #e8eaed;
+}
+
+.dark .subcategory-scroll {
+  scrollbar-color: var(--brand-saffron-dark) #292017;
+}
+
+.dark .subcategory-scroll::-webkit-scrollbar-track {
+  background: #292017;
+}
+
+.dark ::selection {
+  background: #7c4517;
+  color: #ffffff;
+}
+

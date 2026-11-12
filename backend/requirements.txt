@@ -1,0 +1,42 @@
+# FastAPI & ASGI Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Database & ORM (SQLAlchemy 2.0 + Async/Sync PostgreSQL + Alembic)
+sqlalchemy>=2.0.36
+alembic>=1.14.0
+psycopg[binary]>=3.2.3
+asyncpg>=0.30.0
+
+# Data Validation & Settings
+pydantic>=2.10.0
+pydantic-settings>=2.6.1
+email-validator>=2.2.0
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.17
+
+# Payments: encrypted BYOG credentials and local IP geolocation
+cryptography>=43.0.0
+geoip2>=4.8.0
+bcrypt>=4.0.0
+
+# Utilities & Ingestion
+pyyaml>=6.0.2
+httpx>=0.28.0
+pytest>=8.3.3
+Pillow>=11.0,<13
+
+
+# Optional distributed checkout locks (PostgreSQL remains authoritative)
+redis>=5.2,<7
+
+# Durable verification-email delivery via Redis broker
+celery[redis]>=5.4,<6
+
+# Google Identity Services: cryptographic ID-token validation and cached public certificates
+google-auth>=2.36,<3
+requests>=2.32,<3
+cachecontrol>=0.14,<1
