@@ -1,5 +1,6 @@
 """Build and smoke-test Next/FastAPI using a disposable database and local ports 8045/3055."""
-import os,sys,tempfile,shutil,subprocess,time,json
+import os,sys,tempfile,shutil,subprocess,time,json,hashlib,base64
+from urllib.parse import urlsplit, parse_qs
 from pathlib import Path
 import httpx
 repo=Path(__file__).resolve().parents[2]
@@ -12,7 +13,7 @@ env=os.environ.copy()
 env.update(DATABASE_URL=f'sqlite:///{root}/test.db',UPLOAD_DIR=str(root/'uploads'),PRIVATE_STORAGE_DIR=str(root/'private'),
  ENVIRONMENT='development',SITE_URL='http://127.0.0.1:3055',RATE_LIMIT_READ_PER_MINUTE='1000',RATE_LIMIT_PER_MINUTE='1000',
  API_INTERNAL_URL='http://127.0.0.1:8045/api/v1',NEXT_PUBLIC_SITE_URL='http://127.0.0.1:3055',NEXT_TELEMETRY_DISABLED='1',
- PYTHONPATH=str(repo))
+ PYTHONPATH=str(repo), RATE_LIMIT_ENABLED='false', REDIS_URL='')
 seed=r'''
 from backend.app.db.session import Base,engine,SessionLocal
 from backend.app.models import User,Asset,Section,Category
@@ -22,7 +23,7 @@ from backend.app.core.config import settings
 from pathlib import Path
 Base.metadata.create_all(engine)
 with SessionLocal() as db:
- user=User(id='integration-admin',email='integration@example.com',username='integration',name='Integration',tier=UserTier.ADMIN,email_verification_required=False)
+ user=User(id='integration-admin',email='integration@example.com',username='integration',name='Integration',tier=UserTier.ADMIN,email_verification_required=False,google_sub='mock-integration-google-subject')
  section=Section(id='section',slug='prompts',name='Prompts',description='Test prompts')
  category=Category(id='category',section_id='section',slug='system',name='System')
  db.add_all([user,section,category]);db.flush()
@@ -60,6 +61,39 @@ try:
    assert response.status_code==200,(path,response.status_code,response.text[:300])
    assert content_type in response.headers['content-type'],(path,response.headers)
    print('PASS route',path,flush=True)
+  resource=base+'/api/v1/mcp'
+  assert client.get(base+'/.well-known/oauth-protected-resource').json()['resource']==resource
+  assert client.get(base+'/.well-known/oauth-protected-resource/api/v1/mcp').json()['resource']==resource
+  metadata=client.get(base+'/.well-known/oauth-authorization-server').json()
+  callback='http://127.0.0.1:8765/callback'
+  registration=client.post(metadata['registration_endpoint'],json={'client_name':'Integration editor','redirect_uris':[callback]})
+  assert registration.status_code==201,registration.text
+  cid=registration.json()['client_id']
+  verifier='v'*64
+  challenge=base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
+  response=client.get(metadata['authorization_endpoint'],params={'client_id':cid,'redirect_uri':callback,
+   'response_type':'code','code_challenge':challenge,'code_challenge_method':'S256','resource':resource,'state':'smoke-test'})
+  assert response.status_code==303,response.text
+  consent_url=response.headers['location']
+  response=client.get(consent_url)
+  assert response.status_code==200 and 'Connect to Promptally' in response.text
+  handle=parse_qs(urlsplit(consent_url).query)['request'][0]
+  consent_api=base+'/api/v1/oauth/requests/'+handle
+  assert client.get(consent_api).json()['client_name']=='Integration editor'
+  response=client.post(consent_api,json={'approved':True},headers={'Authorization':'Bearer '+token})
+  assert response.status_code==200,response.text
+  query=parse_qs(urlsplit(response.json()['redirect_url']).query)
+  assert query['state']==['smoke-test']
+  response=client.post(metadata['token_endpoint'],data={'grant_type':'authorization_code','client_id':cid,
+   'code':query['code'][0],'code_verifier':verifier,'redirect_uri':callback,'resource':resource})
+  assert response.status_code==200,response.text
+  mcp_token=response.json()['access_token']
+  message={'jsonrpc':'2.0','id':1,'method':'tools/list'}
+  assert client.post(resource,json=message).status_code==401
+  assert client.post(resource,json=message,headers={'Authorization':'Bearer '+token}).status_code==401
+  response=client.post(resource,json=message,headers={'Authorization':'Bearer '+mcp_token})
+  assert response.status_code==200 and len(response.json()['result']['tools'])==3,response.text
+  print('PASS MCP consent page, OAuth discovery/exchange and protected tools through Next proxy',flush=True)
   response=client.get(base+'/p/free-blueprint')
   assert response.status_code==200
   assert 'free-blueprint title' in response.text and 'FREE_BLUEPRINT_SOURCE' in response.text

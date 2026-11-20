@@ -4,11 +4,11 @@ import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { loadGoogleIdentity, GoogleIdentity } from "@/lib/google-identity";
 
-export function GoogleSignInButton({disabled, onBusy}: {disabled: boolean; onBusy: (busy: boolean) => void}) {
+export function GoogleSignInButton({disabled, onBusy, onSuccess}: {disabled: boolean; onBusy: (busy: boolean) => void; onSuccess?: () => void}) {
   const { googleLogin } = useAuth();
   const container = useRef<HTMLDivElement>(null);
-  const callbacks = useRef({googleLogin, onBusy, disabled});
-  callbacks.current = {googleLogin, onBusy, disabled};
+  const callbacks = useRef({googleLogin, onBusy, disabled, onSuccess});
+  callbacks.current = {googleLogin, onBusy, disabled, onSuccess};
   const pending = useRef<Promise<[Awaited<ReturnType<typeof api.startGoogleLogin>>, GoogleIdentity]> | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [ready, setReady] = useState(false);
@@ -30,6 +30,7 @@ export function GoogleSignInButton({disabled, onBusy}: {disabled: boolean; onBus
           try {
             if (!result.credential) throw new Error("Google did not return a sign-in credential.");
             await callbacks.current.googleLogin(result.credential, challenge.csrf_token);
+            callbacks.current.onSuccess?.();
           } catch (failure) {
             if (active) { setReady(false); setError(failure instanceof Error ? failure.message : "Google sign-in failed."); }
           } finally {

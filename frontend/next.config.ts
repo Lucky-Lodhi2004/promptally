@@ -35,6 +35,9 @@ const nextConfig: NextConfig = {
       { source: "/llms-full.txt", destination: `${backend}/llms-full.txt` },
       { source: "/sitemap.xml", destination: `${backend}/sitemap.xml` },
       { source: "/.well-known/mcp.json", destination: `${backend}/.well-known/mcp.json` },
+      { source: "/.well-known/oauth-protected-resource", destination: `${backend}/.well-known/oauth-protected-resource` },
+      { source: "/.well-known/oauth-protected-resource/api/v1/mcp", destination: `${backend}/.well-known/oauth-protected-resource/api/v1/mcp` },
+      { source: "/.well-known/oauth-authorization-server", destination: `${backend}/.well-known/oauth-authorization-server` },
       { source: "/p/:slug.md", destination: `${backend}/api/v1/assets/:slug.md` },
       // IndexNow key file: the API only serves the configured key and 404s every other name.
       { source: "/:key([A-Za-z0-9-]{8,64}).txt", destination: `${backend}/:key.txt` },

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Search, ArrowRight } from "lucide-react";
 import { AssetCard } from "@/components/assets/AssetCard";
-import { CATEGORIES } from "@/lib/constants";
+import { CategoryDropdowns } from "@/components/directory/CategoryDropdowns";
 import { getServerAssets } from "@/lib/server-api";
 import { SAME_AS, SITE_URL, jsonLd } from "@/lib/site";
 
@@ -78,20 +78,7 @@ export default async function HomePage() {
 
         <section aria-labelledby="directory-hubs-heading" className="mb-14">
           <h2 id="directory-hubs-heading" className="mb-4 text-[22px] font-light text-[#69696c]">Browse by modality &amp; category</h2>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {CATEGORIES.map((section) => (
-              <article key={section.slug} className="rounded-lg border border-[#e2e2e3] p-4">
-                <h3 className="text-[15px] font-bold text-[#55565a]">
-                  <Link href={`/directory/${section.slug}`} className="hover:text-[#f28c28]">{section.name}</Link>
-                </h3>
-                <ul className="mt-2 space-y-1 text-[13px]">
-                  {section.subcategories.filter((s) => s.slug !== "all").slice(0, 5).map((sub) => (
-                    <li key={sub.slug}><Link href={`/directory/${section.slug}/${sub.slug}`} className="text-[#77777a] hover:text-[#f28c28]">{sub.name}</Link></li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
+          <CategoryDropdowns />
         </section>
 
         <section aria-labelledby="trending-heading">
