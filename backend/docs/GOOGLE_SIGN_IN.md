@@ -40,7 +40,9 @@ npm --prefix frontend run build
 ```
 
 Required verification packages: `google-auth`, `requests`, `cachecontrol`.
-No database migration: `users.google_sub` already has a unique index.
+Google website sign-in needs no migration: `users.google_sub` already has a unique index.
+MCP OAuth reuses this sign-in and adds its own tables and consent flow; see
+[MCP OAuth](MCP_OAUTH.md) for its required migration and client setup.
 
 ## Security and account behavior
 

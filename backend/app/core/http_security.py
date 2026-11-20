@@ -18,6 +18,8 @@ class HttpSecurityMiddleware:
             return await self.app(scope, receive, send)
         headers = dict(scope.get('headers', []))
         maximum = settings.MAX_REQUEST_BODY_BYTES
+        if scope['path'].startswith('/api/v1/oauth/'):
+            maximum = min(maximum, 16384)
         size, started = 0, False
 
         async def secured_send(message):
@@ -25,10 +27,11 @@ class HttpSecurityMiddleware:
             if message['type'] == 'http.response.start':
                 started = True
                 values = list(message.get('headers', []))
+                if not any(name.lower() == b'referrer-policy' for name, _ in values):
+                    values.append((b'referrer-policy', b'strict-origin-when-cross-origin'))
                 values.extend([
                     (b'x-content-type-options', b'nosniff'),
                     (b'x-frame-options', b'DENY'),
-                    (b'referrer-policy', b'strict-origin-when-cross-origin'),
                     (b'content-security-policy', b"default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
                 ])
                 if settings.secure_cookies:

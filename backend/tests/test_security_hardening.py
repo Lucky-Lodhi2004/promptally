@@ -144,7 +144,7 @@ def test_markdown_metadata_cannot_create_new_sections(client, asset, db):
         assert '[click](https://evil.example)' not in body
 
 
-def test_oversized_mcp_batch_is_rejected_before_any_tool_runs(client, monkeypatch):
+def test_oversized_mcp_batch_is_rejected_before_any_tool_runs(client, monkeypatch, mcp_access):
     from backend.app.api.v1.endpoints import seo_aeo
     def fail(*args): raise AssertionError('Oversized batch executed a tool')
     monkeypatch.setattr(seo_aeo, '_handle_rpc', fail)

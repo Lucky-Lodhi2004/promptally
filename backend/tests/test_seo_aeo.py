@@ -241,7 +241,7 @@ def rpc(client, method, params=None, rpc_id=1, **kw):
     return client.post('/api/v1/mcp', json=body, **kw)
 
 
-def test_mcp_json_rpc_handshake_tools_and_gating(client, asset, users, db):
+def test_mcp_json_rpc_handshake_tools_and_gating(client, asset, users, db, mcp_access):
     init = rpc(client, 'initialize', {'protocolVersion': '2025-03-26'}).json()
     assert init['jsonrpc'] == '2.0' and init['id'] == 1 and init['result']['capabilities']['tools'] == {'listChanged': False}
     assert rpc(client, 'notifications/initialized', rpc_id=None).status_code == 202
@@ -265,7 +265,7 @@ def test_mcp_json_rpc_handshake_tools_and_gating(client, asset, users, db):
     assert client.post('/api/v1/mcp', content=b'{bad', headers={'content-type': 'application/json'}).status_code == 400
 
 
-def test_mcp_legacy_shape_still_works(client, asset):
+def test_mcp_legacy_shape_still_works(client, asset, mcp_access):
     legacy = client.post('/api/v1/mcp', json={'method': 'tools/list'}).json()
     assert 'tools' in legacy and 'jsonrpc' not in legacy
     result = client.post('/api/v1/mcp', json={'method': 'tools/call', 'params': {'name': 'search_promptally', 'arguments': {'query': 'paid'}}}).json()

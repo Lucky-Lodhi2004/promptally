@@ -15,6 +15,7 @@ from backend.app.models.enums import CollectionVisibility
 from backend.app.models.taxonomy import Section, Category
 from backend.app.core.config import settings
 from backend.app.services.seo import approx_token_count, variable_names, plain_metadata
+from backend.app.api.v1.endpoints.mcp_oauth import require_mcp_user
 
 router = APIRouter()
 CHUNK_SIZE = 25000
@@ -243,13 +244,14 @@ MCP_TOOLS: List[Dict[str, Any]] = [
 
 @router.get("/.well-known/mcp.json")
 def get_mcp_manifest():
-    """Public read-only Model Context Protocol discovery manifest."""
+    """Public discovery for the authenticated, read-only MCP server."""
     return {
         "schema_version": "1.0",
-        "name": "Promptally Public Blueprint Registry",
+        "name": "Promptally Blueprint Registry",
         "description": "Search and fetch free prompts, SKILL.md packages, ComfyUI workflows, and deterministic engineering loops.",
         "endpoint": f"{_base()}/api/v1/mcp",
         "protocol": "json-rpc-2.0",
+        "authorization": {"type": "oauth2", "resource_metadata": f"{_base()}/.well-known/oauth-protected-resource"},
         "tools": [{**t, "inputSchema": t["parameters"]} for t in MCP_TOOLS],
     }
 
@@ -346,10 +348,10 @@ def _handle_rpc(db: Session, message: Any) -> Optional[Dict[str, Any]]:
     return None if is_notification else {"jsonrpc": "2.0", "id": rpc_id, "result": result}
 
 
-@router.post("/mcp")
+@router.post("/mcp", dependencies=[Depends(require_mcp_user)])
 async def handle_mcp_call(request: Request, db: Session = Depends(get_db)):
     """
-    Public read-only MCP server endpoint (JSON-RPC 2.0 over HTTP POST) for AI coding agents.
+    Authenticated read-only MCP endpoint (JSON-RPC 2.0 over HTTP POST).
     Requests without a `jsonrpc` field keep the original lightweight response shape.
     """
     try:

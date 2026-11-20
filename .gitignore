@@ -38,6 +38,7 @@ dev/local-proxy/proxy-auth.conf
 .pytest_cache/
 deploy/secrets/
 deploy/backups/
+landing_page/
 /data/
 /backend/backups/
 /backend/scripts/seed_database.py

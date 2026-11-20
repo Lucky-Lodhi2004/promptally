@@ -17,6 +17,17 @@ from datetime import datetime, timedelta, timezone
 
 
 @pytest.fixture
+def mcp_access(client, users, db):
+    from backend.tests.test_mcp_oauth import authorization_code, exchange
+    cid, code, _ = authorization_code(client, users, db)
+    response = exchange(client, cid, code)
+    assert response.status_code == 200, response.text
+    access = response.json()['access_token']
+    client.headers['Authorization'] = 'Bearer ' + access
+    return access
+
+
+@pytest.fixture
 def db():
     engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)

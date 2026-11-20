@@ -78,7 +78,8 @@ Do not use a User-Agent allowlist for this.
 * `/llms.txt` (top 20) and `/llms-full.txt` (all categories + top 200).
 * `/sitemap.xml` indexes `pages.xml` (home, hubs), one chunked sitemap per section, and
   `collections-0.xml`.
-* `POST /api/v1/mcp` speaks JSON-RPC 2.0 (`initialize`, `ping`, `tools/list`,
+* `POST /api/v1/mcp` requires a Google-authorized MCP bearer token; see [MCP OAuth](MCP_OAUTH.md).
+  It speaks JSON-RPC 2.0 (`initialize`, `ping`, `tools/list`,
   `tools/call`); the original un-enveloped shape still works. Manifest: `/.well-known/mcp.json`.
 * `PATCH /api/v1/assets/{id}` edits title/description/sample output; renaming records the
   old slug in `slug_redirects` (301). Deleting an artifact returns 404 afterwards (no 410).

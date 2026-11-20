@@ -47,3 +47,4 @@ __all__ = [
 from backend.app.models.marketplace import SellerGatewayConfig, PendingCheckout, WebhookEvent, SellerOAuthState, CheckoutAttempt
 
 from backend.app.models.registration import SignupQuota, EmailChallenge, EmailOutbox
+from backend.app.models.mcp_oauth import MCPClient, MCPAuthorization, MCPGrant, MCPToken

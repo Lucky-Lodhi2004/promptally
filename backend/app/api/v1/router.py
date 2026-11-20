@@ -10,6 +10,7 @@ from backend.app.api.v1.endpoints import (
     marketplace,
     admin,
     seo_aeo,
+    mcp_oauth,
 )
 
 api_router = APIRouter()
@@ -40,4 +41,5 @@ api_router.include_router(admin.router, tags=["Admin"])
 
 # Bonus: SEO & AEO Discovery Layer (Sitemaps, llms.txt, MCP)
 api_router.include_router(seo_aeo.router, tags=["SEO & AEO"])
+api_router.include_router(mcp_oauth.router, tags=["MCP OAuth"])
 
