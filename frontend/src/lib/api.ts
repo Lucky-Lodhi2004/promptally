@@ -1,5 +1,7 @@
 import { getDeviceFingerprint } from "./fingerprint";
 import {
+  AdminAssetsResponse,
+  AdminUsersResponse,
   AssetDetail,
   AssetListResponse,
   BillingQuote,
@@ -335,12 +337,94 @@ export const api = {
     checkoutRequest<DirectBuyResponse>(`/assets/${encodeURIComponent(slug)}/buy`, `purchase:${slug}`),
 
   // 6. Admin Panel
-  getAdminUsers: (params: { status?: "all" | "subscribed"; page?: number; page_size?: number }) => {
+  getAdminUsers: (params: { status?: "all" | "subscribed"; q?: string; page?: number; page_size?: number }) => {
     const searchParams = new URLSearchParams();
     if (params.status) searchParams.set("status", params.status);
+    if (params.q && params.q.trim()) searchParams.set("q", params.q.trim());
     if (params.page) searchParams.set("page", params.page.toString());
     if (params.page_size) searchParams.set("page_size", params.page_size.toString());
-    return request<any>(`/admin/users?${searchParams.toString()}`);
+    return request<AdminUsersResponse>(`/admin/users?${searchParams.toString()}`);
   },
+
+  endAdminUserSubscription: (userId: string, cancelAtProvider = true) =>
+    request<{ status: string; message: string; provider_cancel: string; tier: string }>(
+      `/admin/users/${encodeURIComponent(userId)}/end-subscription`,
+      {
+        method: "POST",
+        body: { cancel_at_provider: cancelAtProvider } as any,
+      }
+    ),
+
+  deleteAdminUser: (userId: string) =>
+    request<{ status: string; message: string; provider_cancel: string }>(
+      `/admin/users/${encodeURIComponent(userId)}`,
+      {
+        method: "DELETE",
+      }
+    ),
+
+  getAdminAssets: (params: {
+    section?: string;
+    subcategory?: string;
+    pricing?: "all" | "free" | "paid";
+    q?: string;
+    pinned_only?: boolean;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params.section && params.section !== "all") searchParams.set("section", params.section);
+    if (params.subcategory && params.subcategory !== "all") searchParams.set("subcategory", params.subcategory);
+    if (params.pricing && params.pricing !== "all") searchParams.set("pricing", params.pricing);
+    if (params.q && params.q.trim()) searchParams.set("q", params.q.trim());
+    if (params.pinned_only) searchParams.set("pinned_only", "true");
+    if (params.page) searchParams.set("page", params.page.toString());
+    if (params.page_size) searchParams.set("page_size", params.page_size.toString());
+    return request<AdminAssetsResponse>(`/admin/assets?${searchParams.toString()}`);
+  },
+
+  createAdminAsset: (formData: FormData) =>
+    request<{
+      status: string;
+      asset_id: string;
+      slug: string;
+      url: string;
+      author_username: string;
+      display_priority: number;
+      media_preview_url: string | null;
+      gif_preview_url: string | null;
+    }>("/admin/assets", {
+      method: "POST",
+      body: formData,
+    }),
+
+  deleteAdminAsset: (assetId: string) =>
+    request<{ status: string; message: string }>(`/admin/assets/${encodeURIComponent(assetId)}`, {
+      method: "DELETE",
+    }),
+
+  moveAdminAssetToTop: (assetId: string) =>
+    request<{ status: string; asset_id: string; slug: string; display_priority: number }>(
+      `/admin/assets/${encodeURIComponent(assetId)}/move-to-top`,
+      { method: "POST" }
+    ),
+
+  setAdminAssetPriority: (assetId: string, displayPriority: number) =>
+    request<{ status: string; asset_id: string; slug: string; display_priority: number }>(
+      `/admin/assets/${encodeURIComponent(assetId)}/priority`,
+      {
+        method: "PATCH",
+        body: { display_priority: displayPriority } as any,
+      }
+    ),
+
+  reorderAdminAssets: (orderedIds: string[]) =>
+    request<{ status: string; updated: Array<{ id: string; display_priority: number }> }>(
+      "/admin/assets/reorder",
+      {
+        method: "POST",
+        body: { ordered_ids: orderedIds } as any,
+      }
+    ),
 };
 

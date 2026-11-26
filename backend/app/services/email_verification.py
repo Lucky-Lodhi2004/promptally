@@ -14,6 +14,7 @@ from backend.app.models.registration import EmailChallenge, EmailOutbox
 from backend.app.models.user import User
 from backend.app.services.crypto import encrypt_secret
 from backend.app.services.membership import utc
+from backend.app.services.analytics import capture_event
 
 log = logging.getLogger(__name__)
 
@@ -94,6 +95,7 @@ def verify_token(db, token):
     db.delete(challenge)
     db.query(EmailOutbox).filter_by(user_id=user.id, status='pending').update({'status': 'canceled', 'token_enc': ''})
     db.commit()
+    capture_event(user.id, "email_verified")
     try:
         if settings.REDIS_URL:
             with Redis.from_url(settings.REDIS_URL, socket_connect_timeout=1, socket_timeout=1) as client:

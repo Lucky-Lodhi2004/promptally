@@ -27,6 +27,7 @@ from backend.app.services.seller_onboarding import (
 )
 
 from backend.app.services.idempotency import idempotent_checkout, checkout_reference, claim_webhook, provider_mutation_started, record_checkout_intent
+from backend.app.services.analytics import capture_event
 
 router = APIRouter()
 
@@ -108,6 +109,11 @@ def connect_seller_payment(req: SellerConnectRequest, db: Session = Depends(get_
     current_user.payouts_enabled = True
     current_user.seller_payment_config = seller_status(config)
     db.commit()
+    capture_event(current_user.id, "seller_gateway_connected", {
+        "gateway": req.gateway_type,
+        "connection_type": "manual",
+        "environment": req.environment if req.gateway_type == "dodo" else None,
+    })
     return {"status": "success", **seller_status(config), "webhook_url":
             f"{settings.SITE_URL}{settings.API_V1_STR}/webhooks/{req.gateway_type}/{current_user.id}"}
 
@@ -186,6 +192,11 @@ def razorpay_oauth_callback(request: Request, state: str = Query(..., min_length
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, 'Razorpay account is already connected') from None
+        capture_event(current_user.id, "seller_gateway_connected", {
+            "gateway": "razorpay",
+            "connection_type": "oauth",
+            "environment": nonce.environment,
+        })
         result = RedirectResponse(destination + '&razorpay=connected', status_code=303)
     result.delete_cookie('razorpay_oauth_state', path=settings.API_V1_STR + '/sellers/razorpay/oauth/callback')
     return result
@@ -317,6 +328,7 @@ def complete_purchase(db, config, gateway, data):
         purchase = AssetPurchase(buyer_id=checkout.buyer_id, asset_id=checkout.asset_id, seller_id=checkout.seller_id)
         db.add(purchase)
     # A second successful checkout must not overwrite the entitlement's transaction.
+    completed_now = False
     if purchase.status != PurchaseStatus.COMPLETED:
         purchase.amount_cents = amount  # Legacy column name: minor units of purchase.currency.
         purchase.currency = checkout.currency
@@ -326,7 +338,17 @@ def complete_purchase(db, config, gateway, data):
         purchase.provider_payment_id = payment_id
         purchase.payment_reference = gateway + ":" + payment_id
         purchase.status = PurchaseStatus.COMPLETED
+        completed_now = True
     checkout.status = CheckoutStatus.PAID
+    if completed_now:
+        return (checkout.buyer_id, "asset_purchased", {
+            "asset_id": checkout.asset_id,
+            "seller_id": checkout.seller_id,
+            "gateway": gateway,
+            "currency": checkout.currency,
+            "amount_minor": amount,
+        })
+    return None
 
 
 @router.post('/assets/{slug}/verify-payment')
@@ -373,8 +395,10 @@ def verify_purchase(slug: str, req: VerifyPurchaseRequest, response: Response,
             return {'status': 'pending', 'unlocked': False}
         event = {'type': 'payment.succeeded', 'data': {
             'payment_id': payment_id, 'checkout_session_id': checkout.provider_order_id}}
-    complete_purchase(db, config, gateway, event)
+    analytics_event = complete_purchase(db, config, gateway, event)
     db.commit()
+    if analytics_event:
+        capture_event(analytics_event[0], analytics_event[1], {**analytics_event[2], "via": "verify"})
     return {'status': 'completed', 'unlocked': True}
 
 
@@ -390,12 +414,14 @@ async def seller_webhook(seller_id, request, db, gateway):
     scope = f"seller:{gateway}:{seller_id}"
     if not claim_webhook(db, scope, event_id):
         return {"status": "ok"}
-    complete_purchase(db, config, gateway, webhook_json(body))
+    analytics_event = complete_purchase(db, config, gateway, webhook_json(body))
     if gateway == "razorpay":
         config.razorpay_last_webhook_at = datetime.now(timezone.utc)
     else:
         config.dodo_last_webhook_at = datetime.now(timezone.utc)
     db.commit()
+    if analytics_event:
+        capture_event(analytics_event[0], analytics_event[1], {**analytics_event[2], "via": "webhook"})
     return {"status": "ok"}
 
 
@@ -413,6 +439,7 @@ async def razorpay_partner_webhook(request: Request, db: Session = Depends(get_d
     scope = f'seller:razorpay:{config.seller_id}'
     if not claim_webhook(db, scope, event_id):
         return {"status": "ok"}
+    analytics_event = None
     if event.get('event') == 'account.app.authorization_revoked':
         created = event.get('created_at')
         if (not isinstance(created, (int, float)) or not config.razorpay_verified_at
@@ -423,9 +450,11 @@ async def razorpay_partner_webhook(request: Request, db: Session = Depends(get_d
         order_id = event.get('payload', {}).get('payment', {}).get('entity', {}).get('order_id')
         if event.get('event') == 'order.paid' and db.query(PendingCheckout).filter_by(
                 seller_id=config.seller_id, gateway=SellerGateway.RAZORPAY, provider_order_id=order_id).first():
-            complete_purchase(db, config, 'razorpay', event)
+            analytics_event = complete_purchase(db, config, 'razorpay', event)
     config.razorpay_last_webhook_at = datetime.now(timezone.utc)
     db.commit()
+    if analytics_event:
+        capture_event(analytics_event[0], analytics_event[1], {**analytics_event[2], "via": "partner_webhook"})
     return {'status': 'ok'}
 
 

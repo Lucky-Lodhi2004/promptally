@@ -56,11 +56,15 @@ export function TopUtilityBar() {
                 className="h-5 w-5"
               />
               <span className="max-w-[170px] truncate">{user.name || user.username}</span>
-              {isPro && (
+              {isAdmin ? (
+                <span className="bg-purple-100 text-purple-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-purple-300">
+                  ADMIN
+                </span>
+              ) : isPro ? (
                 <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300">
                   PRO
                 </span>
-              )}
+              ) : null}
               <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
             </button>
 

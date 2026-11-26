@@ -75,6 +75,9 @@ class Asset(Base):
     
     # Deterministic SEO Quality Gate (False for thin content < 450 chars or near-duplicates)
     is_indexable = Column(Boolean, default=True, index=True, nullable=False)
+
+    # Admin curation priority (higher values appear first in default catalog ordering)
+    display_priority = Column(Integer, default=0, server_default="0", index=True, nullable=False)
     
     # Interaction counters
     copy_count = Column(Integer, default=0, nullable=False)
@@ -100,4 +103,5 @@ class Asset(Base):
         Index("idx_assets_section_cat", "section_id", "category_id", "is_published"),
         Index("idx_assets_filter", "asset_type", "is_paid", "is_published"),
         Index("idx_assets_indexable", "is_indexable", "is_published"),
+        Index("idx_assets_priority", "is_published", "display_priority"),
     )

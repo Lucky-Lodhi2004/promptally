@@ -94,6 +94,10 @@ class Settings(BaseSettings):
     # IndexNow Key for instant search indexing
     INDEXNOW_KEY: str = "promptally-indexnow-key"
 
+    # Product analytics (PostHog)
+    POSTHOG_API_KEY: str = ""
+    POSTHOG_HOST: str = "https://us.i.posthog.com"
+
     @property
     def secure_cookies(self) -> bool:
         return self.ENVIRONMENT != 'development' or self.SITE_URL.startswith('https://')

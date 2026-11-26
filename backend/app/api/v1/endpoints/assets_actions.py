@@ -31,6 +31,7 @@ from backend.app.services.related import related_for_new_asset, link_back
 from backend.app.models.redirect import SlugRedirect
 from backend.app.services.indexnow import submit_urls_to_indexnow
 from backend.app.services.counters import bump_counter
+from backend.app.services.analytics import capture_event
 
 from backend.app.core.upload_routes import BoundedFormRoute
 router = APIRouter(route_class=BoundedFormRoute)
@@ -70,6 +71,17 @@ def download_asset(
     # Increment counter (atomic; does not touch updated_at/ETag)
     bump_counter(db, asset.id, "copy_count" if action == "copy" else "download_count")
     db.refresh(asset)
+    capture_event(
+        current_user.id if current_user else "anonymous",
+        "asset_copied" if action == "copy" else "asset_downloaded",
+        {
+            "asset_id": asset.id,
+            "slug": asset.slug,
+            "asset_type": asset.asset_type.value,
+            "is_paid": asset.is_paid,
+            "authenticated": bool(current_user),
+        },
+    )
 
     # If action is 'copy', simply return raw text payload
     if action == "copy":
@@ -291,6 +303,15 @@ async def upload_asset(
     db.add(new_asset)
     db.commit()
     db.refresh(new_asset)
+    capture_event(current_user.id, "asset_published", {
+        "asset_id": new_asset.id,
+        "slug": new_asset.slug,
+        "section": section_slug,
+        "category": category_slug,
+        "asset_type": asset_type.value,
+        "is_paid": new_asset.is_paid,
+        "price_cents": new_asset.price_cents,
+    })
 
     # Give the new page inbound links so it is never an orphan (best effort; never fails a publish).
     try:

@@ -40,3 +40,6 @@ celery[redis]>=5.4,<6
 google-auth>=2.36,<3
 requests>=2.32,<3
 cachecontrol>=0.14,<1
+
+# Product analytics (server-side webhooks, auth, and MCP telemetry)
+posthog>=3.7.0,<7

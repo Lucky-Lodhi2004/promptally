@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { TopUtilityBar } from "@/components/layout/TopUtilityBar";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -47,6 +48,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col bg-white text-gray-900">
         <AuthProvider>
+          <PostHogProvider>
           <EmailVerificationBanner />
           <TopUtilityBar />
           <Suspense fallback={<div className="h-16 bg-white border-b border-gray-200" />}>
@@ -123,6 +125,7 @@ export default async function RootLayout({
           </footer>
             </div>
           </div>
+          </PostHogProvider>
         </AuthProvider>
       </body>
     </html>

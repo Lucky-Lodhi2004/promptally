@@ -16,6 +16,14 @@ from backend.app.models.enums import UserTier, SubscriptionStatus, SubscriptionG
 from datetime import datetime, timedelta, timezone
 
 
+@pytest.fixture(autouse=True)
+def disable_posthog_in_tests(monkeypatch):
+    """Never transmit analytics events during automated tests."""
+    monkeypatch.setattr(settings, 'POSTHOG_API_KEY', '')
+    from backend.app.services.analytics import shutdown_analytics
+    shutdown_analytics()
+
+
 @pytest.fixture
 def mcp_access(client, users, db):
     from backend.tests.test_mcp_oauth import authorization_code, exchange
@@ -71,8 +79,9 @@ def client(db, monkeypatch, tmp_path):
     from backend.app.services import indexnow
     async def no_index(*args): return True
     # Prevent an actual indexing call from background tasks during upload tests.
-    from backend.app.api.v1.endpoints import assets_actions
+    from backend.app.api.v1.endpoints import assets_actions, admin
     monkeypatch.setattr(assets_actions, 'submit_urls_to_indexnow', no_index)
+    monkeypatch.setattr(admin, 'submit_urls_to_indexnow', no_index)
     def isolated_db():
         try:
             yield db

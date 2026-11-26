@@ -59,4 +59,4 @@ export function middleware(request: NextRequest) {
   return secure(response);
 }
 
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|ingest(?:/|$)).*)"] };

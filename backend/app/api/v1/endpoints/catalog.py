@@ -163,13 +163,18 @@ def list_assets(
             )
         )
 
-    # 5. Sorting
+    # 5. Sorting (admin-pinned display_priority > 0 floats to the top in default/popular view)
     if sort == "downloads":
         query = query.order_by(Asset.download_count.desc(), Asset.copy_count.desc())
     elif sort == "newest":
         query = query.order_by(Asset.created_at.desc())
     else:  # 'popular'
-        query = query.order_by(Asset.copy_count.desc(), Asset.download_count.desc())
+        query = query.order_by(
+            Asset.display_priority.desc(),
+            Asset.copy_count.desc(),
+            Asset.download_count.desc(),
+            Asset.created_at.desc(),
+        )
 
     total = query.count()
     offset = (page - 1) * page_size
@@ -207,6 +212,7 @@ def list_assets(
                 price_usd=round(a.price_cents / 100.0, 2),
                 copy_count=a.copy_count,
                 download_count=a.download_count,
+                display_priority=a.display_priority or 0,
                 is_indexable=a.is_indexable,
                 canonical_path=canonical_path,
                 section_slug=a.section.slug if a.section else None,

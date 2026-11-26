@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,11 +15,19 @@ from backend.app.api.v1.router import api_router
 from backend.app.db.session import get_db
 from backend.app.api.v1.endpoints.seo_aeo import get_llms_txt, get_llms_full_txt, get_mcp_manifest, get_sitemap_index
 from backend.app.api.v1.endpoints.mcp_oauth import protected_resource_metadata, authorization_server_metadata
+from backend.app.services.analytics import shutdown_analytics
 
 if settings.ENVIRONMENT == 'production':
     issues = security_configuration_issues(settings)
     if issues:
         raise RuntimeError('Unsafe production configuration: ' + '; '.join(issues))
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
+    shutdown_analytics()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -26,7 +35,8 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 # 1. CORS Configuration
@@ -53,7 +63,7 @@ async def prevent_private_response_caching(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
     private_path = any(path.startswith(f"{settings.API_V1_STR}/{part}")
-                       for part in ("auth/", "oauth/", "mcp", "users/", "collections", "billing/subscription", "sellers/"))
+                       for part in ("auth/", "oauth/", "mcp", "users/", "collections", "billing/subscription", "sellers/", "admin/"))
     if private_path or path.endswith("/download") or request.headers.get("authorization") or request.cookies.get("access_token"):
         response.headers["Cache-Control"] = "private, no-store"
         vary = {v.strip() for v in response.headers.get("Vary", "").split(",") if v.strip()}

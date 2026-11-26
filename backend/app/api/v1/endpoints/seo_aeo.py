@@ -13,8 +13,10 @@ from backend.app.models.asset import Asset
 from backend.app.models.collection import Collection
 from backend.app.models.enums import CollectionVisibility
 from backend.app.models.taxonomy import Section, Category
+from backend.app.models.user import User
 from backend.app.core.config import settings
 from backend.app.services.seo import approx_token_count, variable_names, plain_metadata
+from backend.app.services.analytics import capture_event
 from backend.app.api.v1.endpoints.mcp_oauth import require_mcp_user
 
 router = APIRouter()
@@ -320,7 +322,7 @@ def _rpc_error(rpc_id: Any, code: int, message: str) -> Dict[str, Any]:
     return {"jsonrpc": "2.0", "id": rpc_id, "error": {"code": code, "message": message}}
 
 
-def _handle_rpc(db: Session, message: Any) -> Optional[Dict[str, Any]]:
+def _handle_rpc(db: Session, message: Any, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Handle one JSON-RPC 2.0 message. Notifications (no `id`) produce no response."""
     if not isinstance(message, dict) or message.get("jsonrpc") != "2.0" or not isinstance(message.get("method"), str):
         return _rpc_error(message.get("id") if isinstance(message, dict) else None, -32600, "Invalid Request")
@@ -340,7 +342,15 @@ def _handle_rpc(db: Session, message: Any) -> Optional[Dict[str, Any]]:
                             for t in MCP_TOOLS]}
     elif method == "tools/call":
         args = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
-        result = _call_tool(db, params.get("name"), args)
+        tool_name = params.get("name")
+        result = _call_tool(db, tool_name, args)
+        if user_id:
+            capture_event(user_id, "mcp_tool_called", {
+                "tool_name": tool_name,
+                "modality": args.get("modality") or None,
+                "slug": args.get("slug") or None,
+                "is_error": bool(result.get("isError")),
+            })
     elif is_notification:
         return None
     else:
@@ -348,8 +358,12 @@ def _handle_rpc(db: Session, message: Any) -> Optional[Dict[str, Any]]:
     return None if is_notification else {"jsonrpc": "2.0", "id": rpc_id, "result": result}
 
 
-@router.post("/mcp", dependencies=[Depends(require_mcp_user)])
-async def handle_mcp_call(request: Request, db: Session = Depends(get_db)):
+@router.post("/mcp")
+async def handle_mcp_call(
+    request: Request,
+    db: Session = Depends(get_db),
+    mcp_user: User = Depends(require_mcp_user),
+):
     """
     Authenticated read-only MCP endpoint (JSON-RPC 2.0 over HTTP POST).
     Requests without a `jsonrpc` field keep the original lightweight response shape.
@@ -362,10 +376,10 @@ async def handle_mcp_call(request: Request, db: Session = Depends(get_db)):
     if isinstance(payload, list):
         if not payload or len(payload) > 10:
             return JSONResponse(_rpc_error(None, -32600, 'Batch must contain between 1 and 10 requests'), status_code=400)
-        responses = [r for r in (_handle_rpc(db, m) for m in payload) if r is not None]
+        responses = [r for r in (_handle_rpc(db, m, user_id=mcp_user.id) for m in payload) if r is not None]
         return JSONResponse(responses) if responses else Response(status_code=202)
     if isinstance(payload, dict) and "jsonrpc" in payload:
-        response = _handle_rpc(db, payload)
+        response = _handle_rpc(db, payload, user_id=mcp_user.id)
         return JSONResponse(response) if response is not None else Response(status_code=202)
 
     # Legacy shape.
@@ -376,5 +390,14 @@ async def handle_mcp_call(request: Request, db: Session = Depends(get_db)):
         return {"tools": get_mcp_manifest()["tools"]}
     if method == "tools/call":
         args = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
-        return _call_tool(db, params.get("name"), args)
+        tool_name = params.get("name")
+        result = _call_tool(db, tool_name, args)
+        capture_event(mcp_user.id, "mcp_tool_called", {
+            "tool_name": tool_name,
+            "modality": args.get("modality") or None,
+            "slug": args.get("slug") or None,
+            "is_error": bool(result.get("isError")),
+            "legacy": True,
+        })
+        return result
     return _text(f"Unknown method or tool: {method}", error=True)

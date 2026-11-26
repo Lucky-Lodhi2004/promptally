@@ -34,6 +34,7 @@ from backend.app.services.email_verification import create_challenge, kick_deliv
 from backend.app.core.rate_limit import consume_sync
 from backend.app.models.registration import EmailChallenge
 from backend.app.services.google_login import (new_challenge, check_browser, consume_challenge, COOKIE as GOOGLE_COOKIE, COOKIE_PATH as GOOGLE_COOKIE_PATH)
+from backend.app.services.analytics import capture_event
 
 router = APIRouter()
 
@@ -115,6 +116,7 @@ def signup(
         raise HTTPException(409, "Account information is already registered. Please sign in or try again.") from None
     kick_delivery(outbox_id)
     db.refresh(new_user)
+    capture_event(new_user.id, "user_signed_up", {"provider": "email", "country_code": new_user.country_code})
 
     token = create_access_token(new_user.id, token_version=new_user.token_version)
     set_auth_cookie(response, token)
@@ -236,6 +238,7 @@ def google_auth(req: GoogleAuthRequest, request: Request, response: Response,
     authoritative = email.endswith('@gmail.com') or (isinstance(info.get('hd'), str) and bool(info['hd']))
     user = db.query(User).filter_by(google_sub=subject).with_for_update().first()
     outbox_id = None
+    is_new_user = False
     if user is None:
         user = db.query(User).filter_by(email=email).with_for_update().first()
         if user:
@@ -244,6 +247,7 @@ def google_auth(req: GoogleAuthRequest, request: Request, response: Response,
             # Both the local email and Google's authoritative ownership are proven.
             user.google_sub = subject
         else:
+            is_new_user = True
             client_ip, fingerprint = registration_identity(request, req.device_fingerprint)
             reserve_signup(db, client_ip, fingerprint)
             country_code, _ = detect_country(request)
@@ -276,6 +280,12 @@ def google_auth(req: GoogleAuthRequest, request: Request, response: Response,
         raise HTTPException(409, "Google account is already connected. Please try signing in again.") from None
     if outbox_id:
         kick_delivery(outbox_id)
+    if is_new_user:
+        capture_event(user.id, "user_signed_up", {
+            "provider": "google",
+            "country_code": user.country_code,
+            "email_verified": bool(user.email_verified_at),
+        })
     from backend.app.services.membership import refresh_tier
     refresh_tier(user)
     token = create_access_token(user.id, token_version=user.token_version)

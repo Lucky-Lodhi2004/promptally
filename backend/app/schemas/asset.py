@@ -40,6 +40,7 @@ class AssetCardResponse(BaseModel):
     price_usd: float
     copy_count: int
     download_count: int
+    display_priority: int = 0
     is_indexable: bool
     canonical_path: str
     section_slug: Optional[str] = None

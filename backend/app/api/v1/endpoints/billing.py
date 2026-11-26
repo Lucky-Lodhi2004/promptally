@@ -18,6 +18,7 @@ from backend.app.services.membership import is_pro, refresh_tier, utc
 from backend.app.services.payments import platform_request, inr_paise, verify_webhook, webhook_json
 
 from backend.app.services.idempotency import idempotent_checkout, checkout_reference, claim_webhook, record_checkout_intent
+from backend.app.services.analytics import capture_event
 
 router = APIRouter()
 
@@ -212,8 +213,15 @@ def reconcile_razorpay_subscription(db, sub, remote=None):
 def verify_subscription(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     sub = db.query(Subscription).filter_by(user_id=current_user.id).with_for_update().first()
     if sub and sub.gateway == SubscriptionGateway.RAZORPAY and not is_pro(current_user):
-        reconcile_razorpay_subscription(db, sub)
+        activated = reconcile_razorpay_subscription(db, sub)
         db.commit()
+        if activated:
+            capture_event(current_user.id, "pro_subscription_activated", {
+                "gateway": "razorpay",
+                "currency": sub.currency,
+                "amount_minor": sub.expected_amount_minor,
+                "via": "verify",
+            })
     return get_subscription(current_user)
 
 
@@ -258,6 +266,10 @@ def cancel_subscription(db: Session = Depends(get_db), current_user: User = Depe
     else:
         raise HTTPException(502, "Payment provider did not confirm cancellation; check cancellation status before retrying")
     db.commit()
+    capture_event(current_user.id, "pro_subscription_canceled", {
+        "gateway": gateway,
+        "cancel_at_period_end": sub.cancel_at_period_end,
+    })
     return CancelSubscriptionResponse(status="success", message=message)
 
 
@@ -296,8 +308,12 @@ def apply_subscription_event(db, gateway, event):
         if not valid_charge and state == "active" and utc(sub.current_period_end) <= datetime.now(timezone.utc):
             # Some initial activation events have no captured payment entity.
             # Confirm the actual invoice/capture instead of ignoring a paid user.
-            reconcile_razorpay_subscription(db, sub, remote)
-            return
+            if reconcile_razorpay_subscription(db, sub, remote):
+                return (sub.user_id, "pro_subscription_activated", {
+                    "gateway": gateway, "currency": sub.currency,
+                    "amount_minor": sub.expected_amount_minor, "via": "webhook",
+                })
+            return None
     else:
         metadata = remote.get("metadata") or {}
         if (remote.get("product_id") != sub.gateway_plan_id
@@ -309,16 +325,28 @@ def apply_subscription_event(db, gateway, event):
         sub.gateway_subscription_id = remote_id
         sub.provider_customer_id = (remote.get("customer") or {}).get("customer_id")
         sub.cancel_at_period_end = remote.get("cancel_at_next_billing_date", False)
+    previous_status = sub.status
+    analytics_event = None
     if state == "active":
         sub.current_period_end = parse_time(end)
         sub.status = SubscriptionStatus.ACTIVE
+        if previous_status != SubscriptionStatus.ACTIVE:
+            analytics_event = (sub.user_id, "pro_subscription_activated", {
+                "gateway": gateway, "currency": sub.currency,
+                "amount_minor": sub.expected_amount_minor, "via": "webhook",
+            })
     elif state in {"cancelled", "canceled", "completed", "expired"}:
         sub.status = SubscriptionStatus.CANCELED
         sub.cancel_at_period_end = False
+        if previous_status != SubscriptionStatus.CANCELED:
+            analytics_event = (sub.user_id, "pro_subscription_canceled", {
+                "gateway": gateway, "cancel_at_period_end": False, "via": "webhook",
+            })
     elif state in {"pending", "halted", "on_hold", "failed", "paused", "past_due"}:
         sub.status = SubscriptionStatus.PAST_DUE
     sub.last_event_at = datetime.now(timezone.utc)
     refresh_tier(sub.user)
+    return analytics_event
 
 
 async def platform_webhook(request, db, gateway):
@@ -328,8 +356,10 @@ async def platform_webhook(request, db, gateway):
     scope = "platform:" + gateway
     if not claim_webhook(db, scope, event_id):
         return {"status": "ok"}
-    apply_subscription_event(db, gateway, webhook_json(body))
+    analytics_event = apply_subscription_event(db, gateway, webhook_json(body))
     db.commit()
+    if analytics_event:
+        capture_event(*analytics_event)
     return {"status": "ok"}
 
 

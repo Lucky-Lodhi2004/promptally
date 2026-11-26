@@ -77,6 +77,7 @@ export interface AssetCard {
   price_usd: number;
   copy_count: number;
   download_count: number;
+  display_priority?: number;
   is_indexable: boolean;
   canonical_path: string;
   section_slug: string | null;
@@ -256,5 +257,67 @@ export interface SubscribeResponse {
   key_id?: string | null;
   checkout_session_id?: string | null;
   status: string;
+}
+
+export interface AdminUserCard {
+  id: string;
+  email: string;
+  username: string;
+  name: string;
+  tier: string;
+  signup_ip: string | null;
+  country_code: string;
+  device_fingerprint: string | null;
+  created_at: string | null;
+  subscription_gateway: string | null;
+  subscription_status: string | null;
+  subscription_period_end: string | null;
+  cancel_at_period_end: boolean;
+  asset_count: number;
+}
+
+export interface AdminUsersResponse {
+  total_signed_up: number;
+  total_subscribed: number;
+  razorpay_subscribers: number;
+  dodo_subscribers: number;
+  total_filtered: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  users: AdminUserCard[];
+}
+
+export interface AdminAssetItem {
+  id: string;
+  slug: string;
+  seo_title: string;
+  short_description: string;
+  asset_type: string;
+  section_slug: string | null;
+  section_name: string | null;
+  category_slug: string | null;
+  category_name: string | null;
+  author_username: string;
+  media_preview_url: string | null;
+  gif_preview_url: string | null;
+  is_paid: boolean;
+  price_usd: number;
+  copy_count: number;
+  download_count: number;
+  view_count: number;
+  display_priority: number;
+  is_indexable: boolean;
+  created_at: string | null;
+}
+
+export interface AdminAssetsResponse {
+  total_published: number;
+  total_pinned: number;
+  total_filtered: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  items: AdminAssetItem[];
 }
 

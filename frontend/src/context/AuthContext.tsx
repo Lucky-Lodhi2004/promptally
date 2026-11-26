@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { UserProfile } from "@/lib/types";
 import { api, ApiError, setCheckoutOwner } from "@/lib/api";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
+import { resetPostHog } from "@/lib/posthog";
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("promptally_token");
     }
     window.google?.accounts.id.disableAutoSelect();
+    resetPostHog();
     setCheckoutOwner(null);
     setUser(null);
   };

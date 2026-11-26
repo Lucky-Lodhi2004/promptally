@@ -9,6 +9,7 @@ import {
   BadgeDollarSign,
   Briefcase,
   User,
+  Shield,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -16,7 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isPro } = useAuth();
+  const { isPro, isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
 
   const primaryNav = [
@@ -30,6 +31,9 @@ export function Sidebar() {
     { label: "Sell Your Artifact", href: "/publish", icon: BadgeDollarSign },
     { label: "Seller Studio", href: "/dashboard?tab=seller-studio", icon: Briefcase },
     { label: "Account Settings", href: "/dashboard", icon: User },
+    ...(isAdmin
+      ? [{ label: "Admin Panel", href: "/admin", icon: Shield, badge: "ADMIN" as const }]
+      : []),
   ];
 
   return (

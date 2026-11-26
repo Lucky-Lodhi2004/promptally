@@ -43,7 +43,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
-    assets = relationship("Asset", back_populates="author", cascade="all, delete-orphan")
+    assets = relationship("Asset", back_populates="author", passive_deletes=True)
     collections = relationship("Collection", back_populates="owner", cascade="all, delete-orphan")
     subscription = relationship("Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan")
     purchases = relationship("AssetPurchase", foreign_keys="[AssetPurchase.buyer_id]", back_populates="buyer")

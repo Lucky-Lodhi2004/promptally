@@ -10,6 +10,7 @@ const apex = /^https:\/\/(?!www\.)([a-z0-9.-]+\.[a-z]{2,})\/?$/i.exec(site)?.[1]
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  skipTrailingSlashRedirect: true,
   async headers() {
     return [{source: "/:path*", headers: [
       {key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups"},
@@ -29,6 +30,8 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return { beforeFiles: [
+      { source: "/ingest/static/:path*", destination: "https://us-assets.i.posthog.com/static/:path*" },
+      { source: "/ingest/:path*", destination: "https://us.i.posthog.com/:path*" },
       { source: "/api/v1/:path*", destination: `${backend}/api/v1/:path*` },
       { source: "/uploads/:path*", destination: `${backend}/uploads/:path*` },
       { source: "/llms.txt", destination: `${backend}/llms.txt` },

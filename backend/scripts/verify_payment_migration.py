@@ -40,12 +40,12 @@ with tempfile.TemporaryDirectory(prefix='promptally-migration-') as directory:
             db.commit()
         # Recreate the state before the previously unfinished BYOG migration.
         with engine.begin() as conn:
-            for table in ('email_outbox','email_challenges','signup_quotas','checkout_attempts','seller_oauth_states','pending_checkouts','seller_gateway_configs','webhook_events'):
+            for table in ('mcp_oauth_tokens','mcp_oauth_grants','mcp_oauth_authorizations','mcp_oauth_clients','email_outbox','email_challenges','signup_quotas','checkout_attempts','seller_oauth_states','pending_checkouts','seller_gateway_configs','webhook_events'):
                 conn.execute(text(f'DROP TABLE {table} CASCADE'))
             conn.execute(text('DROP TYPE sellergateway'))
             conn.execute(text('DROP TYPE checkoutstatus'))
             columns={'users':['email_verified_at','email_verification_required','token_version','login_failure_count','login_locked_until'], 'subscriptions':['provider_customer_id','expected_amount_minor','checkout_reference','checkout_session_id','checkout_url','last_event_at'],
-                     'assets':['price_inr_paise','seller_dodo_product_id','deleted_at'],
+                     'assets':['price_inr_paise','seller_dodo_product_id','deleted_at','display_priority'],
                      'asset_purchases':['provider','provider_payment_id','currency']}
             for table,names in columns.items():
                 for name in names:
