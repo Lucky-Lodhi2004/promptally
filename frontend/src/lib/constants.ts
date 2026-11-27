@@ -27,6 +27,16 @@ export const CATEGORIES: CategoryConfig[] = [
         description: "Browse all 20,490 prompt templates across every discipline.",
       },
       {
+        slug: "game-development-prompts",
+        name: "Game Development",
+        description: "Game design docs, Godot 4, Unity, Unreal, shaders, mechanics, and interactive NPC prompts",
+      },
+      {
+        slug: "3d-scenes",
+        name: "3D Scenes",
+        description: "Blender, Three.js, WebGL, Spline, PBR materials, lighting, and procedural 3D scene prompts",
+      },
+      {
         slug: "system-base-contexts",
         name: "System & Base Contexts",
         description: "Baseline directives for OpenAI, Claude, Grok, v0, Cursor, Devin",
